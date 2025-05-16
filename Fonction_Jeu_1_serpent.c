@@ -6,16 +6,20 @@
 #include "Grille.h"
 
 int gameover1(struct grille* G, struct serpent* S) {
-    // Si le serpent sort de la grille OU touche certaines couleurs (le corps du serpent)
-    if (S->tete.x < 0 || S->tete.y < 0 || S->tete.x == G->n || S->tete.y == G->m || 
-        (strcmp(G->tab[S->tete.x][S->tete.y], "\33[42m  ") == 0 ||
-         strcmp(G->tab[S->tete.x][S->tete.y], "\33[43m  ") == 0 ||
-         strcmp(G->tab[S->tete.x][S->tete.y], "\33[44m  ") == 0 ||
-         strcmp(G->tab[S->tete.x][S->tete.y], "\33[45m  ") == 0 ||
-         strcmp(G->tab[S->tete.x][S->tete.y], "\33[46m  ") == 0 ||
-         strcmp(G->tab[S->tete.x][S->tete.y], "\33[47m  ") == 0)) {
-        return -1; // Game over
+    if (S->tete.x < 0 || S->tete.y < 0 || S->tete.x >= G->n || S->tete.y >= G->m) {
+        return -1;
     }
+    
+    char* cell = G->tab[S->tete.x][S->tete.y];
+    if (strcmp(cell, "\33[42m  ") == 0 ||
+        strcmp(cell, "\33[43m  ") == 0 ||
+        strcmp(cell, "\33[44m  ") == 0 ||
+        strcmp(cell, "\33[45m  ") == 0 ||
+        strcmp(cell, "\33[46m  ") == 0 ||
+        strcmp(cell, "\33[47m  ") == 0) {
+        return -1;
+    }
+    
     return 0;
 }
 
@@ -66,14 +70,19 @@ int jeu(struct grille* G, struct serpent* S, int vitesse) {
     Grille_redessiner(G);
     halfdelay(vitesse); // définit le délai d'attente entre chaque tour
 
-    // Boucle principale du jeu
-    do {
+    while (1) {
         est_fruit = 1;
         car = getch(); // lit la touche appuyée
 
-        // Si aucune touche appuyée, on garde la direction précédente
         if (car == -1) {
-            car = der_car;
+            car = der_car;  // Si aucune touche, on garde la dernière direction
+        } else {
+            der_car = car;  // Sinon on mémorise la dernière touche valide
+        }
+
+        // Vérifie game over avant de continuer
+        if (gameover1(G, S) == -1) {
+            break;  // Sort de la boucle si fin du jeu
         }
 
         // Déplacement du serpent selon la touche appuyée
@@ -118,31 +127,29 @@ int jeu(struct grille* G, struct serpent* S, int vitesse) {
             score++;
         }
 
-        // Mise à jour de l'écran
         fflush(stdout);
         printf("\33[2J");
         printf("\33[H");
 
-        Grille_vider(G); // vide la grille
+        Grille_vider(G);
 
-        // Si un fruit a été mangé, on en génère un autre à une case libre
-        if (!est_fruit) {
+        if (est_fruit != 1) {  // Génère un nouveau fruit si l'ancien a été mangé
             do {
                 Grille_tirage_fruit(G);
             } while (strcmp(G->tab[G->fruit.x][G->fruit.y], "\33[42m:p") == 0 ||
                      strcmp(G->tab[G->fruit.x][G->fruit.y], S->corps->premier->couleur) == 0);
         }
 
-        // On met à jour la grille avec le serpent et le fruit
         Grille_remplir(G);
         Grille_remplir_serpent(G, S);
         Grille_redessiner(G);
-
-    } while (gameover1(G, S) != -1); // on continue tant que le jeu n’est pas perdu
+    }
 
     endwin(); // Fin de l’interface ncurses
 
-    printf("\33[37mVotre score est : %d\n", score); // Affiche le score
+    printf("\33[37mVotre score est : %d\n", score);
 
-    return 1; // Retour de fin
+    return score;
 }
+
+
