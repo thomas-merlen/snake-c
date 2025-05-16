@@ -20,4 +20,5 @@ Fonction_Jeu_1_serpent.o: Fonction_Jeu_1_serpent.c Fonction_Jeu_1_serpent.h
 	gcc -c -Wall  Fonction_Jeu_1_serpent.c 
 
 
-clean: rm *.o snake
+clean: 
+		rm -fr *.o snake
